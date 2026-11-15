@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haptic MIDI Pad - 3D CAD & Exploded View</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #0f172a;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="text-slate-200">
+
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+  <!-- Header Overlay -->
+  <header class="absolute top-4 left-4 right-4 md:right-auto z-10 pointer-events-none">
+    <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 p-4 rounded-xl shadow-2xl pointer-events-auto max-w-md">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30">
+          <i class="fa-solid me-0 fa-cube text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-white leading-tight">Haptic MIDI Pad CAD</h1>
+          <p class="text-xs text-slate-400">3D Exploded Assembly & Hardware Layout</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left Control Panel (Exploded View & Display Options) -->
+  <div class="absolute top-24 left-4 z-10 w-80 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar space-y-3 pointer-events-none">
+    
+    <!-- Exploded Slider Card -->
+    <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 p-4 rounded-xl shadow-xl pointer-events-auto">
+      <div class="flex justify-between items-center mb-2">
+        <label for="explode-slider" class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <i class="fa-solid fa-layer-group text-blue-400 mr-1.5"></i>Exploded Assembly
+        </label>
+        <span id="explode-val" class="text-xs font-mono font-bold text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800/40">0%</span>
+      </div>
+      <input id="explode-slider" type="range" min="0" max="100" value="0" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+      
+      <div class="flex gap-2 mt-3">
+        <button id="btn-assembled" class="flex-1 text-xs py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition font-medium text-slate-200">
+          Assembled
+        </button>
+        <button id="btn-exploded" class="flex-1 text-xs py-1.5 px-3 bg-blue-600/30 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 rounded-lg transition font-medium">
+          Fully Exploded
+        </button>
+      </div>
+    </div>
+
+    <!-- Display Toggles Card -->
+    <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 p-4 rounded-xl shadow-xl pointer-events-auto space-y-2.5">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+        <i class="fa-solid fa-sliders text-emerald-400 mr-1.5"></i>Display Layers
+      </h3>
+      
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show Trigger Pads</span>
+        <input type="checkbox" id="toggle-pads" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+      
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show FSR Pressure Sensors</span>
+        <input type="checkbox" id="toggle-fsr" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+      
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show Dampening Foam</span>
+        <input type="checkbox" id="toggle-foam" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show LRA Haptic Motors</span>
+        <input type="checkbox" id="toggle-lra" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show Electronics & Boards</span>
+        <input type="checkbox" id="toggle-pcb" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Show Outer Enclosure</span>
+        <input type="checkbox" id="toggle-case" checked class="w-4 h-4 accent-blue-500 rounded cursor-pointer">
+      </label>
+      
+      <hr class="border-slate-800 my-2">
+
+      <label class="flex items-center justify-between text-xs cursor-pointer group">
+        <span class="text-slate-300 group-hover:text-white transition">Auto-Rotate View</span>
+        <input type="checkbox" id="toggle-autorotate" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+      </label>
+    </div>
+
+    <!-- Preset Camera Views -->
+    <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 p-4 rounded-xl shadow-xl pointer-events-auto">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2.5">
+        <i class="fa-solid fa-video text-purple-400 mr-1.5"></i>Camera Presets
+      </h3>
+      <div class="grid grid-cols-3 gap-2">
+        <button id="cam-iso" class="text-xs py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-300 transition">Isometric</button>
+        <button id="cam-top" class="text-xs py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-300 transition">Top Down</button>
+        <button id="cam-side" class="text-xs py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-300 transition">Side Stack</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Component Inspector Info Box -->
+  <div class="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 z-10 pointer-events-none">
+    <div id="inspector-card" class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 p-4 rounded-xl shadow-2xl pointer-events-auto md:w-96 transition-all duration-300">
+      <div class="flex items-center justify-between mb-2">
+        <span id="comp-tag" class="text-[10px] font-mono uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/40">
+          Click Component
+        </span>
+        <i id="comp-icon" class="fa-solid fa-hand-pointer text-slate-400"></i>
+      </div>
+      <h2 id="comp-title" class="text-base font-bold text-white mb-1">Interactive Inspector</h2>
+      <p id="comp-desc" class="text-xs text-slate-300 leading-relaxed">
+        Click on any internal module, motor, sensor, or board to inspect its function, part designation, and assembly layer details.
+      </p>
+    </div>
+  </div>
+
+  <!-- 3D Scene Initialization Script -->
+  <script>
+    // --- 1. Scene Setup & Global Variables ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.FogExp2(0x0f172a, 0.0035);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(160, 150, 200);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 + 0.05; // Slightly allow under-view
+    controls.minDistance = 50;
+    controls.maxDistance = 450;
+    controls.target.set(0, 20, 0);
+
+    // --- 2. Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    mainLight.position.set(120, 200, 100);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.bias = -0.0001;
+    scene.add(mainLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+    fillLight.position.set(-120, 100, -100);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.PointLight(0xa855f7, 0.8, 300);
+    rimLight.position.set(0, -50, 0);
+    scene.add(rimLight);
+
+    // Grid Floor
+    const gridHelper = new THREE.GridHelper(400, 40, 0x334155, 0x1e293b);
+    gridHelper.position.y = -25;
+    scene.add(gridHelper);
+
+    // --- 3. Component Groups & Exploded Target Definitions ---
+    const assemblyGroup = new THREE.Group();
+    scene.add(assemblyGroup);
+
+    // Raycasting & Interactivity setup
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let clickableObjects = [];
+    let selectedObject = null;
+
+    // Component Explode Height Factors (multiplier for slider value 0..1)
+    const LAYER_HEIGHTS = {
+      PADS: 1.1,      // Top silicon triggers
+      FSR: 0.85,      // Pressure sensors
+      FOAM: 0.65,     // Isolation foam
+      LRA: 0.45,      // Haptic motors
+      MID_FRAME: 0.25,// Mounting grid frame
+      PCB: 0.05,      // Main electronics baseplate
+      CASE: -0.25     // Outer enclosure base
+    };
+
+    const interactiveData = new Map();
+
+    // --- 4. Geometry Helper Generators ---
+    
+    // Custom Rounded Rectangle Extrude
+    function createRoundedRectShape(width, height, radius) {
+      const shape = new THREE.Shape();
+      const x = -width / 2, y = -height / 2;
+      shape.moveTo(x, y + radius);
+      shape.lineTo(x, y + height - radius);
+      shape.quadraticCurveTo(x, y + height, x + radius, y + height);
+      shape.lineTo(x + width - radius, y + height);
+      shape.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+      shape.lineTo(x + width, y + radius);
+      shape.quadraticCurveTo(x + width, y, x + width - radius, y);
+      shape.lineTo(x + radius, y);
+      shape.quadraticCurveTo(x, y, x, y + radius);
+      return shape;
+    }
+
+    // --- 5. CAD Assembly Construction ---
+
+    // 5.1 Enclosure Outer Base
+    const caseGroup = new THREE.Group();
+    caseGroup.userData = { layer: 'CASE', baseOffsetY: -12 };
+    
+    const caseShape = createRoundedRectShape(135, 135, 16);
+    const caseExtrudeSettings = { depth: 24, bevelEnabled: true, bevelSegments: 4, steps: 1, bevelSize: 2, bevelThickness: 2 };
+    const caseGeo = new THREE.ExtrudeGeometry(caseShape, caseExtrudeSettings);
+    caseGeo.rotateX(Math.PI / 2);
+    
+    const caseMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.4,
+      metalness: 0.2,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
+    });
+    const caseMesh = new THREE.Mesh(caseGeo, caseMat);
+    caseMesh.castShadow = true;
+    caseMesh.receiveShadow = true;
+    caseGroup.add(caseMesh);
+
+    // USB-C Cutout Port on Enclosure Rear
+    const usbCutoutGeo = new THREE.BoxGeometry(14, 6, 8);
+    const usbCutoutMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.9 });
+    const usbCutout = new THREE.Mesh(usbCutoutGeo, usbCutoutMat);
+    usbCutout.position.set(0, -2, -67);
+    caseGroup.add(usbCutout);
+
+    interactiveData.set(caseMesh, {
+      title: 'Main Outer Enclosure',
+      tag: 'CHASSIS',
+      icon: 'fa-box',
+      desc: 'Ergonomic matte desktop chassis. Holds all internal component trays, PCB mounting standoffs, and features a rear USB-C port cutout.'
+    });
+    clickableObjects.push(caseMesh);
+    assemblyGroup.add(caseGroup);
+
+    // 5.2 Main Electronics & Baseplate Group
+    const pcbGroup = new THREE.Group();
+    pcbGroup.userData = { layer: 'PCB', baseOffsetY: -2 };
+
+    // Baseplate Carrier
+    const baseplateGeo = new THREE.BoxGeometry(116, 2, 116);
+    const baseplateMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.3 });
+    const baseplateMesh = new THREE.Mesh(baseplateGeo, baseplateMat);
+    baseplateMesh.position.y = -4;
+    pcbGroup.add(baseplateMesh);
+
+    // Raspberry Pi Pico W
+    const picoGroup = new THREE.Group();
+    picoGroup.position.set(0, 0, 0);
+
+    const picoPcbGeo = new THREE.BoxGeometry(21, 2, 51);
+    const picoPcbMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.3 }); // Pico Green
+    const picoPcb = new THREE.Mesh(picoPcbGeo, picoPcbMat);
+    picoGroup.add(picoPicoMesh = picoPcb);
+
+    // Pico Wireless Metal Shield Box
+    const picoShieldGeo = new THREE.BoxGeometry(12, 2.5, 12);
+    const picoShieldMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.2 });
+    const picoShield = new THREE.Mesh(picoShieldGeo, picoShieldMat);
+    picoShield.position.set(0, 2, -14);
+    picoGroup.add(picoShield);
+
+    // Pico USB Micro/Type-C Port
+    const picoUsbGeo = new THREE.BoxGeometry(8, 3, 6);
+    const picoUsbMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.9, roughness: 0.1 });
+    const picoUsb = new THREE.Mesh(picoUsbGeo, picoUsbMat);
+    picoUsb.position.set(0, 2, -24);
+    picoGroup.add(picoUsb);
+
+    pcbGroup.add(picoGroup);
+    interactiveData.set(picoPcb, {
+      title: 'Raspberry Pi Pico W',
+      tag: 'MICROCONTROLLER',
+      icon: 'fa-microchip',
+      desc: 'RP2040 core microcontroller. Runs high-speed I2C communications, reads FSR pressure ADC values, and transmits low-latency MIDI via USB/Bluetooth.'
+    });
+    clickableObjects.push(picoPcb);
+
+    // TCA9548A I2C Multiplexer Breakout
+    const muxPcbGeo = new THREE.BoxGeometry(20, 1.8, 30);
+    const muxPcbMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.3 }); // Blue Breakout
+    const muxPcb = new THREE.Mesh(muxPcbGeo, muxPcbMat);
+    muxPcb.position.set(0, 0, 36);
+    pcbGroup.add(muxPcb);
+
+    interactiveData.set(muxPcb, {
+      title: 'TCA9548A I2C Multiplexer',
+      tag: 'I2C MULTIPLEXER',
+      icon: 'fa-network-wired',
+      desc: 'Essential 8-channel I2C switch. Solves fixed address conflicts (0x5A) allowing the Pico W to communicate with all 4 DRV2605L haptic drivers independently.'
+    });
+    clickableObjects.push(muxPcb);
+
+    // 4x DRV2605L Haptic Driver Breakouts
+    const driverPositions = [
+      { x: -38, z: -30 },
+      { x: 38, z: -30 },
+      { x: -38, z: 30 },
+      { x: 38, z: 30 }
+    ];
+
+    driverPositions.forEach((pos, idx) => {
+      const driverGeo = new THREE.BoxGeometry(16, 1.6, 18);
+      const driverMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.3 });
+      const driverMesh = new THREE.Mesh(driverGeo, driverMat);
+      driverMesh.position.set(pos.x, 0, pos.z);
+
+      // Driver IC chip on top
+      const chipGeo = new THREE.BoxGeometry(5, 1, 5);
+      const chipMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.5 });
+      const chipMesh = new THREE.Mesh(chipGeo, chipMat);
+      chipMesh.position.set(0, 1.3, 0);
+      driverMesh.add(chipMesh);
+
+      pcbGroup.add(driverMesh);
+
+      interactiveData.set(driverMesh, {
+        title: `DRV2605L Driver Board #${idx + 1}`,
+        tag: 'HAPTIC DRIVER',
+        icon: 'fa-bolt',
+        desc: `Dedicated haptic driver IC for Pad #${idx + 1}. Features auto-resonance tracking specifically calibrated to drive the Vybronics LRA motor.`
+      });
+      clickableObjects.push(driverMesh);
+    });
+
+    assemblyGroup.add(pcbGroup);
+
+    // 5.3 Structural Mid-Frame Support
+    const midFrameGroup = new THREE.Group();
+    midFrameGroup.userData = { layer: 'MID_FRAME', baseOffsetY: 6 };
+
+    const midFrameShape = createRoundedRectShape(124, 124, 10);
+    const midFrameExtrude = { depth: 4, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8 };
+    const midFrameGeo = new THREE.ExtrudeGeometry(midFrameShape, midFrameExtrude);
+    midFrameGeo.rotateX(Math.PI / 2);
+    const midFrameMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6, roughness: 0.4 });
+    const midFrameMesh = new THREE.Mesh(midFrameGeo, midFrameMat);
+    midFrameGroup.add(midFrameMesh);
+
+    interactiveData.set(midFrameMesh, {
+      title: 'Structural Mid-Frame Tray',
+      tag: 'MECHANICAL SUPPORT',
+      icon: 'fa-border-all',
+      desc: 'Rigid mounting plate that securely anchors the four LRA haptic motors and isolates vibration from propagating into the main controller body.'
+    });
+    clickableObjects.push(midFrameMesh);
+    assemblyGroup.add(midFrameGroup);
+
+    // 5.4 4x LRA Motors Layer (Vybronics VG2080001-175H)
+    const lraGroup = new THREE.Group();
+    lraGroup.userData = { layer: 'LRA', baseOffsetY: 12 };
+
+    const padOffsets = [
+      { x: -28, z: -28, id: 1 },
+      { x: 28, z: -28, id: 2 },
+      { x: -28, z: 28, id: 3 },
+      { x: 28, z: 28, id: 4 }
+    ];
+
+    padOffsets.forEach(pad => {
+      const lraSubGroup = new THREE.Group();
+      lraSubGroup.position.set(pad.x, 0, pad.z);
+
+      // Metallic Coin Body
+      const lraBodyGeo = new THREE.CylinderGeometry(8, 8, 3.2, 32);
+      const lraBodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+      const lraBody = new THREE.Mesh(lraBodyGeo, lraBodyMat);
+      lraSubGroup.add(lraBody);
+
+      // Soldering PCB Tab
+      const tabGeo = new THREE.BoxGeometry(4, 0.8, 4);
+      const tabMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.4 }); // PCB Amber
+      const tab = new THREE.Mesh(tabGeo, tabMat);
+      tab.position.set(0, 1.8, 6.5);
+      lraSubGroup.add(tab);
+
+      lraGroup.add(lraSubGroup);
+
+      interactiveData.set(lraBody, {
+        title: `Vybronics LRA Motor (Pad #${pad.id})`,
+        tag: 'LINEAR ACTUATOR',
+        icon: 'fa-wave-square',
+        desc: `Linear Resonant Actuator (VG2080001-175H). Delivers sub-15ms crisp, localized tactile clicks directly under Pad #${pad.id}.`
+      });
+      clickableObjects.push(lraBody);
+    });
+    assemblyGroup.add(lraGroup);
+
+    // 5.5 Dampening Isolation Foam Layer
+    const foamGroup = new THREE.Group();
+    foamGroup.userData = { layer: 'FOAM', baseOffsetY: 16 };
+
+    padOffsets.forEach(pad => {
+      const foamGeo = new THREE.BoxGeometry(48, 1.5, 48);
+      const foamMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, transparent: true, opacity: 0.85 });
+      const foamMesh = new THREE.Mesh(foamGeo, foamMat);
+      foamMesh.position.set(pad.x, 0, pad.z);
+      foamGroup.add(foamMesh);
+
+      interactiveData.set(foamMesh, {
+        title: `Acoustic Isolation Foam (Pad #${pad.id})`,
+        tag: 'DAMPENING LAYER',
+        icon: 'fa-rug',
+        desc: '1.5mm high-density foam padding. Absorbs unwanted shock, prevents tactile crosstalk between neighboring pads, and holds the FSR sensor flush.'
+      });
+      clickableObjects.push(foamMesh);
+    });
+    assemblyGroup.add(foamGroup);
+
+    // 5.6 FSR 402 Pressure Sensors Layer
+    const fsrGroup = new THREE.Group();
+    fsrGroup.userData = { layer: 'FSR', baseOffsetY: 19 };
+
+    padOffsets.forEach(pad => {
+      const fsrSubGroup = new THREE.Group();
+      fsrSubGroup.position.set(pad.x, 0, pad.z);
+
+      // Active Sensing Disc Area
+      const fsrDiscGeo = new THREE.CylinderGeometry(9.5, 9.5, 0.5, 32);
+      const fsrDiscMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, metalness: 0.1 }); // FSR Cyan/Blue
+      const fsrDisc = new THREE.Mesh(fsrDiscGeo, fsrDiscMat);
+      fsrSubGroup.add(fsrDisc);
+
+      // Tail Flexible Connector PCB Lead
+      const tailGeo = new THREE.BoxGeometry(4, 0.4, 22);
+      const tailMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.8 }); // Polyimide Flex Amber
+      const tail = new THREE.Mesh(tailGeo, tailMat);
+      tail.position.set(0, -0.1, 14);
+      fsrSubGroup.add(tail);
+
+      fsrGroup.add(fsrSubGroup);
+
+      interactiveData.set(fsrDisc, {
+        title: `FSR 402 Force Sensor (Pad #${pad.id})`,
+        tag: 'PRESSURE SENSOR',
+        icon: 'fa-gauge-high',
+        desc: `Force Sensitive Resistor detecting strike velocity and continuous key pressure (aftertouch) for Pad #${pad.id}.`
+      });
+      clickableObjects.push(fsrDisc);
+    });
+    assemblyGroup.add(fsrGroup);
+
+    // 5.7 Top Silicone Trigger Pads Layer
+    const padsGroup = new THREE.Group();
+    padsGroup.userData = { layer: 'PADS', baseOffsetY: 24 };
+
+    padOffsets.forEach(pad => {
+      const padShape = createRoundedRectShape(46, 46, 6);
+      const padExtrude = { depth: 7, bevelEnabled: true, bevelSize: 1.2, bevelThickness: 1.2 };
+      const padGeo = new THREE.ExtrudeGeometry(padShape, padExtrude);
+      padGeo.rotateX(Math.PI / 2);
+
+      const padMat = new THREE.MeshStandardMaterial({
+        color: 0x2563eb,
+        roughness: 0.2,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.92
+      });
+      const padMesh = new THREE.Mesh(padGeo, padMat);
+      padMesh.position.set(pad.x, 0, pad.z);
+      padsGroup.add(padMesh);
+
+      interactiveData.set(padMesh, {
+        title: `Silicone Trigger Pad #${pad.id}`,
+        tag: 'USER INTERFACE',
+        icon: 'fa-fingerprint',
+        desc: `Durable, textured silicone top pad #${pad.id}. Receives finger strikes and directly transmits touch pressure down to the FSR sensor and LRA motor stack.`
+      });
+      clickableObjects.push(padMesh);
+    });
+    assemblyGroup.add(padsGroup);
+
+    // --- 6. Exploded Assembly Logic ---
+    let currentExplodeFactor = 0;
+    let targetExplodeFactor = 0;
+
+    function updateExplosion() {
+      // Smooth interpolation towards target slider value
+      currentExplodeFactor += (targetExplodeFactor - currentExplodeFactor) * 0.1;
+
+      const scaleDist = 70; // Max height spread in units
+
+      // Update Y positions of groups based on layer factors
+      [padsGroup, fsrGroup, foamGroup, lraGroup, midFrameGroup, pcbGroup, caseGroup].forEach(grp => {
+        const layerKey = grp.userData.layer;
+        const factor = LAYER_HEIGHTS[layerKey] || 0;
+        const targetY = grp.userData.baseOffsetY + (factor * currentExplodeFactor * scaleDist);
+        grp.position.y = targetY;
+      });
+
+      document.getElementById('explode-val').textContent = `${Math.round(currentExplodeFactor * 100)}%`;
+    }
+
+    // --- 7. Interactivity & Inspection Logic ---
+
+    function onPointerMove(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(clickableObjects, true);
+
+      if (intersects.length > 0) {
+        document.body.style.cursor = 'pointer';
+      } else {
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    function onPointerClick(event) {
+      // Avoid click trigger when dragging camera controls
+      if (event.target.tagName !== 'CANVAS') return;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(clickableObjects, true);
+
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        
+        // Find registered clickable ancestor if child mesh was hit
+        while (obj && !interactiveData.has(obj) && obj.parent) {
+          obj = obj.parent;
+        }
+
+        if (interactiveData.has(obj)) {
+          highlightComponent(obj);
+          displayInspectorInfo(interactiveData.get(obj));
+        }
+      }
+    }
+
+    function highlightComponent(mesh) {
+      if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
+        selectedObject.material.emissive.setHex(0x000000);
+      }
+
+      selectedObject = mesh;
+      if (selectedObject && selectedObject.material && selectedObject.material.emissive) {
+        selectedObject.material.emissive.setHex(0x1d4ed8);
+      }
+    }
+
+    function displayInspectorInfo(info) {
+      const card = document.getElementById('inspector-card');
+      const tag = document.getElementById('comp-tag');
+      const title = document.getElementById('comp-title');
+      const desc = document.getElementById('comp-desc');
+      const icon = document.getElementById('comp-icon');
+
+      card.classList.add('scale-[1.02]', 'border-blue-500/80');
+      setTimeout(() => card.classList.remove('scale-[1.02]'), 200);
+
+      tag.textContent = info.tag;
+      title.textContent = info.title;
+      desc.textContent = info.desc;
+      icon.className = `fa-solid ${info.icon} text-blue-400 text-lg`;
+    }
+
+    // --- 8. UI Event Handlers ---
+
+    // Slider listener
+    const slider = document.getElementById('explode-slider');
+    slider.addEventListener('input', (e) => {
+      targetExplodeFactor = parseFloat(e.target.value) / 100;
+    });
+
+    document.getElementById('btn-assembled').addEventListener('click', () => {
+      targetExplodeFactor = 0;
+      slider.value = 0;
+    });
+
+    document.getElementById('btn-exploded').addEventListener('click', () => {
+      targetExplodeFactor = 1.0;
+      slider.value = 100;
+    });
+
+    // Layer Visibility Toggles
+    document.getElementById('toggle-pads').addEventListener('change', (e) => padsGroup.visible = e.target.checked);
+    document.getElementById('toggle-fsr').addEventListener('change', (e) => fsrGroup.visible = e.target.checked);
+    document.getElementById('toggle-foam').addEventListener('change', (e) => foamGroup.visible = e.target.checked);
+    document.getElementById('toggle-lra').addEventListener('change', (e) => lraGroup.visible = e.target.checked);
+    document.getElementById('toggle-pcb').addEventListener('change', (e) => pcbGroup.visible = e.target.checked);
+    document.getElementById('toggle-case').addEventListener('change', (e) => caseGroup.visible = e.target.checked);
+
+    // Auto rotate toggle
+    const autoRotateToggle = document.getElementById('toggle-autorotate');
+    autoRotateToggle.addEventListener('change', (e) => controls.autoRotate = e.target.checked);
+    controls.autoRotateSpeed = 2.0;
+
+    // Camera Preset Buttons
+    document.getElementById('cam-iso').addEventListener('click', () => animateCamera(160, 150, 200));
+    document.getElementById('cam-top').addEventListener('click', () => animateCamera(0, 260, 10));
+    document.getElementById('cam-side').addEventListener('click', () => animateCamera(240, 20, 0));
+
+    function animateCamera(x, y, z) {
+      const startPos = camera.position.clone();
+      const targetPos = new THREE.Vector3(x, y, z);
+      let progress = 0;
+
+      function stepCam() {
+        progress += 0.05;
+        camera.position.lerpVectors(startPos, targetPos, progress);
+        if (progress < 1) {
+          requestAnimationFrame(stepCam);
+        }
+      }
+      stepCam();
+    }
+
+    // --- 9. Window Resize Handling ---
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('click', onPointerClick);
+
+    // --- 10. Main Animation Loop ---
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      updateExplosion();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Start loop on load
+    window.onload = function() {
+      animate();
+    };
+
+  </script>
+</body>
+</html>
