@@ -8,3 +8,8 @@ Alongside my passion in projects like this and media I also have a passion in mu
 
 # Benefits of me making this
 Building the mouse doesn't take a lot of time or skill but it is still a hard project but building this requires a certain level of CAD, Schematics, and script knowledge way more than the mouse and this will hopefully help me improve my skills in this field and maybe in the music field as well.
+
+The given pictures below are of the project itself.
+![CAD Enclosure Assembly](img/CAD.png)
+![Concept Assembly](img/Gemini-concept-image.png)
+![Schematics Assembly](img/Wiring-final.png)
