@@ -11,5 +11,5 @@ Building the mouse doesn't take a lot of time or skill but it is still a hard pr
 
 The given pictures below are of the project itself.
 ![CAD Enclosure Assembly](img/CAD.png)
-![Concept Assembly](img/Gemini-concept-image.png)
+![Concept Assembly](img/Gemini-concept-image.jpg)
 ![Schematics Assembly](img/Wiring-final.png)
